@@ -1,51 +1,50 @@
-# check a url for changes against a known state
+# check an RSS url for changes against a known state
 # if updated, send an email
+# Wed 04 Aug 2021 02:23:45 PM EDT 
 
 
-from __future__ import print_function
-import os.path
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
 import requests
+import yagmail
+import json
+import io
+import BSRSS
+
+# This is a Python 2/3 compatibility hack
+try:
+    to_unicode = unicode
+except NameError:
+    to_unicode = str
 
 
 
-def create_message(sender, to, subject, message_text):
-  """Create a message for an email.
+receiver = "cbunce@novanthealth.org"
+NEWS_URL = "https://elk4bhkjweeo6lzwhcmh.noticeable.news/feed.rss"
 
-  Args:
-    sender: Email address of the sender.
-    to: Email address of the receiver.
-    subject: The subject of the email message.
-    message_text: The text of the email message.
+yag = yagmail.SMTP("cameronsmachine@gmail.com")
+#yag.send(
+#    to=receiver,
+#    subject="Yagmail test",
+#    contents=body,
+#    attachments=filename,
+#)
 
-  Returns:
-    An object containing a base64url encoded email object.
-  """
-  message = MIMEText(message_text)
-  message['to'] = to
-  message['from'] = sender
-  message['subject'] = subject
-  return {'raw': base64.urlsafe_b64encode(message.as_string())}
+# pull in what we have seen before
+try:
+   with open(f"{(NEWS_URL.split('/')[2])}.json") as infile:
+      known_news = json.load(infile)
+except: 
+   known_news = {}
+news_now = BSRSS.news(NEWS_URL)
+   
 
-def send_message(service, user_id, message):
-  """Send an email message.
+for guid in news_now.keys():
+   if guid not in known_news.keys():
+      body = str(guid) + "\n" + news_now[guid]['description']
+      yag.send(to=receiver, subject="--Zoom App Changelog Updated--", contents=body)
+      known_news[guid] = news_now[guid]
 
-  Args:
-    service: Authorized Gmail API service instance.
-    user_id: User's email address. The special value "me"
-    can be used to indicate the authenticated user.
-    message: Message to be sent.
-
-  Returns:
-    Sent Message.
-  """
-  try:
-    message = (service.users().messages().send(userId=user_id, body=message)
-               .execute())
-    print 'Message Id: %s' % message['id']
-    return message
-  except errors.HttpError, error:
-    print 'An error occurred: %s' % error
+with io.open(f"{(NEWS_URL.split('/')[2])}.json", 'w', encoding='utf8') as outfile:
+    str_ = json.dumps(known_news,
+                      indent=4, sort_keys=True,
+                      separators=(',', ': '), ensure_ascii=False)
+    outfile.write(to_unicode(str_))
