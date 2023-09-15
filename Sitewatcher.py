@@ -17,10 +17,10 @@ except NameError:
 
 
 
-receiver = "cbunce@novanthealth.org"
+receiver = "xx"
 NEWS_URL = "https://elk4bhkjweeo6lzwhcmh.noticeable.news/feed.rss"
 
-yag = yagmail.SMTP("cameronsmachine@gmail.com")
+yag = yagmail.SMTP("xx")
 #yag.send(
 #    to=receiver,
 #    subject="Yagmail test",
